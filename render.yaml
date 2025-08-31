@@ -2,12 +2,39 @@ services:
   - type: web
     name: openhands
     runtime: docker
-    dockerfilePath: ./Dockerfile.render
+    dockerfilePath: ./containers/app/Dockerfile
     plan: free
     envVars:
+      # LLM Configuration
       - key: ANTHROPIC_API_KEY
         sync: false
+      
+      # Disable Docker-dependent features
+      - key: SANDBOX_TYPE
+        value: local
+      - key: DISABLE_DOCKER
+        value: "true"
+      - key: USE_HOST_NETWORK
+        value: "true"
+      - key: RUNTIME
+        value: local
+      
+      # Working directories
       - key: WORKSPACE_BASE
-        value: /opt/workspace_base
+        value: /tmp/workspace
       - key: FILE_STORE
         value: local
+      - key: FILE_STORE_PATH
+        value: /tmp/openhands
+      
+      # Disable problematic features
+      - key: ENABLE_AUTO_LINT
+        value: "false"
+      - key: ENABLE_AUTO_TEST
+        value: "false"
+      
+      # Basic configuration
+      - key: LOG_ALL_EVENTS
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
