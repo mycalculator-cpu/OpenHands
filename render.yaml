@@ -1,35 +1,50 @@
 services:
   - type: web
     name: openhands
-    runtime: python3  # ← No Docker = No Docker errors
+    runtime: python3
     pythonVersion: "3.12"
     plan: free
     
+    # Build process
     buildCommand: |
-      pip install poetry
+      echo "Installing Poetry and Gunicorn..."
+      pip install --upgrade pip poetry gunicorn
+      echo "Configuring Poetry..."
       poetry config virtualenvs.create false
-      poetry install --no-dev
-      cd frontend && npm ci && npm run build
+      echo "Installing Python dependencies..."
+      poetry install --no-dev --no-interaction
+      echo "Building frontend..."
+      cd frontend
+      npm ci --production
+      npm run build
+      cd ..
+      echo "Build completed successfully!"
     
-    startCommand: "poetry run uvicorn openhands.server.listen:app --host 0.0.0.0 --port $PORT"
+    # Start process - using Gunicorn for reliability
+    startCommand: "gunicorn -w 1 -k uvicorn.workers.UvicornWorker openhands.server.listen:app --bind 0.0.0.0:$PORT --timeout 120"
     
+    # Environment configuration
     envVars:
-      # LLM Configuration  
       - key: ANTHROPIC_API_KEY
         sync: false
-      
-      # Local runtime (no Docker)
       - key: SANDBOX_TYPE
         value: local
       - key: RUNTIME
         value: local
       - key: WORKSPACE_BASE
         value: /tmp/workspace
+      - key: FILE_STORE
+        value: local
       - key: FILE_STORE_PATH
         value: /tmp/openhands
-      
-      # Performance optimizations
       - key: PYTHONUNBUFFERED
         value: "1"
+      - key: LOG_ALL_EVENTS
+        value: "true"
+      - key: DISABLE_DOCKER
+        value: "true"
       - key: WEB_CONCURRENCY
         value: "1"
+    
+    # Health check
+    healthCheckPath: /health
