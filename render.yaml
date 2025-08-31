@@ -1,40 +1,35 @@
 services:
   - type: web
     name: openhands
-    runtime: docker
-    dockerfilePath: ./containers/app/Dockerfile
+    runtime: python3  # ← No Docker = No Docker errors
+    pythonVersion: "3.12"
     plan: free
+    
+    buildCommand: |
+      pip install poetry
+      poetry config virtualenvs.create false
+      poetry install --no-dev
+      cd frontend && npm ci && npm run build
+    
+    startCommand: "poetry run uvicorn openhands.server.listen:app --host 0.0.0.0 --port $PORT"
+    
     envVars:
-      # LLM Configuration
+      # LLM Configuration  
       - key: ANTHROPIC_API_KEY
         sync: false
       
-      # Disable Docker-dependent features
+      # Local runtime (no Docker)
       - key: SANDBOX_TYPE
         value: local
-      - key: DISABLE_DOCKER
-        value: "true"
-      - key: USE_HOST_NETWORK
-        value: "true"
       - key: RUNTIME
         value: local
-      
-      # Working directories
       - key: WORKSPACE_BASE
         value: /tmp/workspace
-      - key: FILE_STORE
-        value: local
       - key: FILE_STORE_PATH
         value: /tmp/openhands
       
-      # Disable problematic features
-      - key: ENABLE_AUTO_LINT
-        value: "false"
-      - key: ENABLE_AUTO_TEST
-        value: "false"
-      
-      # Basic configuration
-      - key: LOG_ALL_EVENTS
-        value: "true"
+      # Performance optimizations
       - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: WEB_CONCURRENCY
         value: "1"
