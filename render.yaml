@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: openhands
+    runtime: docker
+    dockerfilePath: ./Dockerfile.render
+    plan: free
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: WORKSPACE_BASE
+        value: /opt/workspace_base
+      - key: FILE_STORE
+        value: local
