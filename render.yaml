@@ -4,12 +4,7 @@ services:
     runtime: python3
     pythonVersion: "3.12"
     plan: free
-    buildCommand: |
-      pip install poetry gunicorn
-      poetry config virtualenvs.create false
-      poetry install --no-dev
-      cd frontend && npm ci && npm run build
-    startCommand: gunicorn -w 1 -k uvicorn.workers.UvicornWorker openhands.server.listen:app --bind 0.0.0.0:$PORT
+    buildCommand: pip install poetry gunicorn && poetry config virtualenvs.create false && poetry install --no-dev && cd frontend && npm ci && npm run build
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
@@ -17,11 +12,5 @@ services:
         value: local
       - key: RUNTIME
         value: local
-      - key: WORKSPACE_BASE
-        value: /tmp/workspace
-      - key: FILE_STORE_PATH
-        value: /tmp/openhands
-      - key: PYTHONUNBUFFERED
-        value: "1"
       - key: DISABLE_DOCKER
         value: "true"
