@@ -1,25 +1,15 @@
 services:
   - type: web
     name: openhands
-    runtime: python3
-    pythonVersion: "3.12"
+    env: docker
+    dockerfilePath: ./Dockerfile.render
     plan: free
-    buildCommand: pip install poetry gunicorn && poetry config virtualenvs.create false && poetry install --no-dev && cd frontend && npm ci && npm run build
-    startCommand: gunicorn -w 1 -k uvicorn.workers.UvicornWorker openhands.server.listen:app --bind 0.0.0.0:$PORT
-    envVars:
-      - key: ANTHROPIC_API_KEY
-        sync: false
-      - key: SANDBOX_TYPE
-        value: local
-      - key: RUNTIME
-        value: local
+    environmentVariables:
+      - key: LLM_MODEL
+        value: "anthropic/claude-3-5-sonnet-20241022"
+      - key: LLM_API_KEY
+        fromSecret: LLM_API_KEY
       - key: WORKSPACE_BASE
-        value: /tmp/workspace
-      - key: FILE_STORE_PATH
-        value: /tmp/openhands
-      - key: PYTHONUNBUFFERED
-        value: "1"
-      - key: DISABLE_DOCKER
-        value: "true"
-      - key: LOG_ALL_EVENTS
-        value: "true"
+        value: "/tmp/workspace"
+      - key: SANDBOX_RUNTIME_CONTAINER_IMAGE
+        value: "openhands/sandbox:v0.8.3"
