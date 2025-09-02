@@ -1,31 +1,37 @@
+# Create this as Dockerfile.render
+FROM node:18-slim as frontend-builder
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci --only=production
+COPY frontend/ ./
+RUN npm run build
+
 FROM python:3.12-slim
+WORKDIR /app
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y git curl nodejs npm && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
+# Install Python dependencies
+COPY pyproject.toml poetry.lock* ./
+RUN pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-dev --no-interaction --no-ansi
 
-# Install Poetry
-RUN pip install poetry
+# Copy application code
+COPY openhands/ ./openhands/
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist/
 
-# Copy and install dependencies
-COPY pyproject.toml poetry.lock README.md ./
-RUN poetry config virtualenvs.create false && poetry install --no-dev
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV NODE_ENV=production
+ENV PORT=10000
 
-# Build frontend
-COPY frontend ./frontend
-WORKDIR /app/frontend
-RUN npm ci && npm run build
+EXPOSE 10000
 
-# Copy backend
-WORKDIR /app
-COPY openhands ./openhands
-COPY microagents ./microagents
-
-# Create directories
-RUN mkdir -p /tmp/openhands /opt/workspace_base
-RUN useradd -m -u 1000 openhands && chown -R openhands:openhands /app /tmp/openhands /opt/workspace_base
-USER openhands
-
-EXPOSE 3000
-CMD ["python", "-m", "uvicorn", "openhands.server.listen:app", "--host", "0.0.0.0", "--port", "3000"]
+# Start command
+CMD ["python", "-m", "openhands.server.listen", "--host", "0.0.0.0", "--port", "10000"]
